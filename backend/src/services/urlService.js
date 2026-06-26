@@ -2,23 +2,20 @@ import { prisma } from "../lib/prisma.js";
 import { encodeBase62 } from "../utils/base62.js";
 
 export async function createShortUrl(originalUrl) {
-  const created = await prisma.url.create({ data: { originalUrl } });
+  const created = await prisma.url.create({
+    data: {
+      originalUrl,
+    },
+  });
+
   const shortCode = encodeBase62(created.id);
 
-  const updated = await prisma.url.update({
-    where: { id: created.id },
-    data: { shortCode },
-  });
-  return updated;
-}
-
-export async function incrementClicks(shortCode) {
   return prisma.url.update({
-    where: { shortCode },
+    where: {
+      id: created.id,
+    },
     data: {
-      clickCount: {
-        increment: 1,
-      },
+      shortCode,
     },
   });
 }
@@ -27,6 +24,64 @@ export async function getUrl(shortCode) {
   return prisma.url.findUnique({
     where: {
       shortCode,
+    },
+  });
+}
+
+export async function incrementClicks(urlId) {
+  return prisma.url.update({
+    where: {
+      id: urlId,
+    },
+    data: {
+      clickCount: {
+        increment: 1,
+      },
+    },
+  });
+}
+
+export async function recordClick({
+  urlId,
+  ipAddress,
+  userAgent,
+  referrer,
+  browser,
+  os,
+  device,
+}) {
+  return prisma.click.create({
+    data: {
+      urlId,
+      ipAddress,
+      userAgent,
+      referrer,
+      browser,
+      os,
+      device,
+    },
+  });
+}
+
+export async function getUrlStats(id) {
+  return prisma.url.findUnique({
+    where: {
+      id: Number(id),
+    },
+    include: {
+      clicks: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
+  });
+}
+
+export async function getAllUrls() {
+  return prisma.url.findMany({
+    orderBy: {
+      createdAt: "desc",
     },
   });
 }
