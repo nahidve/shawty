@@ -12,11 +12,23 @@ import { isValidUrl } from "../utils/urlValidator.js";
 
 export async function shortenUrl(req, res) {
   try {
-    const { url } = req.body;
+    const { url, alias } = req.body;
 
     if (!url) {
       return res.status(400).json({
         message: "URL required",
+      });
+    }
+
+    if (
+      alias &&
+      RESERVED_ALIASES.includes(
+        alias.toLowerCase()
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Alias reserved",
       });
     }
 
@@ -26,17 +38,27 @@ export async function shortenUrl(req, res) {
       });
     }
 
-    const result = await createShortUrl(url);
+    const result = await createShortUrl(url, alias);
+    const code = result.customAlias || result.shortCode;
 
     res.status(201).json({
-      shortUrl: `${process.env.BASE_URL}/${result.shortCode}`,
+      shortUrl: `${process.env.BASE_URL}/${code}`,
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
+  if (
+    error.code === "P2002" &&
+    error.meta?.target?.includes("customAlias")
+  ) {
+    return res.status(409).json({
+      message: "Alias already exists",
     });
   }
+
+  res.status(500).json({
+    message: error.message,
+  });
+}
 }
 
 export async function redirectUrl(req, res) {
