@@ -1,5 +1,13 @@
 import { UAParser } from "ua-parser-js";
-import { createShortUrl, getUrl, incrementClicks, recordClick, getUrlStats, getAllUrls } from "../services/urlService.js";
+import {
+  createShortUrl,
+  getUrl,
+  incrementClicks,
+  recordClick,
+  getAllUrls,
+  getAnalytics,
+} from "../services/urlService.js";
+
 import { isValidUrl } from "../utils/urlValidator.js";
 
 export async function shortenUrl(req, res) {
@@ -13,9 +21,9 @@ export async function shortenUrl(req, res) {
     }
 
     if (!isValidUrl(url)) {
-        return res.status(400).json({
-            message: "Invalid URL",
-        });
+      return res.status(400).json({
+        message: "Invalid URL",
+      });
     }
 
     const result = await createShortUrl(url);
@@ -33,9 +41,21 @@ export async function shortenUrl(req, res) {
 
 export async function redirectUrl(req, res) {
   console.log("REDIRECT CONTROLLER HIT");
+
   try {
+    const start = performance.now();
+
     const { shortCode } = req.params;
+
     const url = await getUrl(shortCode);
+
+    const end = performance.now();
+
+    console.log(
+      "GET URL TIME:",
+      (end - start).toFixed(2),
+      "ms"
+    );
 
     if (!url) {
       return res.status(404).json({
@@ -43,15 +63,32 @@ export async function redirectUrl(req, res) {
       });
     }
 
-    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    const userAgent = req.headers["user-agent"];
-    const referrer = req.headers["referer"] || "direct";
-    const parser = new UAParser(userAgent);
-    const browser = parser.getBrowser().name;
-    const os = parser.getOS().name;
-    const device = parser.getDevice().type || "desktop";
+    const ipAddress =
+      req.headers["x-forwarded-for"] ||
+      req.socket.remoteAddress;
 
-    await Promise.all([
+    const userAgent =
+      req.headers["user-agent"];
+
+    const referrer =
+      req.headers["referer"] || "direct";
+
+    const parser =
+      new UAParser(userAgent);
+
+    const browser =
+      parser.getBrowser().name;
+
+    const os =
+      parser.getOS().name;
+
+    const device =
+      parser.getDevice().type ||
+      "desktop";
+
+    res.redirect(url.originalUrl);
+
+    Promise.all([
       incrementClicks(url.id),
 
       recordClick({
@@ -63,10 +100,12 @@ export async function redirectUrl(req, res) {
         os,
         device,
       }),
-    ]);
-
-    res.redirect(url.originalUrl);
-
+    ]).catch((err) => {
+      console.error(
+        "Analytics Error:",
+        err
+      );
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -75,11 +114,28 @@ export async function redirectUrl(req, res) {
 }
 
 export async function getUrls(req, res) {
-  const urls = await getAllUrls();
-  res.json(urls);
+  try {
+    const urls = await getAllUrls();
+
+    res.json(urls);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 }
 
 export async function getStats(req, res) {
-  const stats = await getUrlStats(req.params.id);
-  res.json(stats);
+  try {
+    const analytics =
+      await getAnalytics(
+        Number(req.params.id)
+      );
+
+    res.json(analytics);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 }
