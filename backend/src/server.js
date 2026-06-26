@@ -7,3 +7,11 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
 });
+
+import { redis } from "./lib/redis.js";
+
+await redis.set("test", "hello");
+
+const value = await redis.get("test");
+
+console.log(value);

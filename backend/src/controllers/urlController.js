@@ -32,6 +32,7 @@ export async function shortenUrl(req, res) {
 }
 
 export async function redirectUrl(req, res) {
+  console.log("REDIRECT CONTROLLER HIT");
   try {
     const { shortCode } = req.params;
     const url = await getUrl(shortCode);

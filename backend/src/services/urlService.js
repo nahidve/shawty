@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { encodeBase62 } from "../utils/base62.js";
+import { getCachedUrl, cacheUrl } from "./cacheService.js";
 
 export async function createShortUrl(originalUrl) {
   const created = await prisma.url.create({
@@ -21,11 +22,27 @@ export async function createShortUrl(originalUrl) {
 }
 
 export async function getUrl(shortCode) {
-  return prisma.url.findUnique({
+  const cached = await getCachedUrl(shortCode);
+   console.log("GET URL CALLED");
+  console.log("cached value:", cached);
+  
+  if (cached) {
+    console.log("CACHE HIT");
+    return cached;
+  }
+  console.log("CACHE MISS");
+
+  const url = await prisma.url.findUnique({
     where: {
       shortCode,
     },
   });
+
+  if (url) {
+    await cacheUrl(shortCode, url);
+  }
+
+  return url;
 }
 
 export async function incrementClicks(urlId) {
