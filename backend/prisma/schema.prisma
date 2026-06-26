@@ -14,6 +14,28 @@ model Url {
   clickCount  Int      @default(0)
   createdAt   DateTime @default(now())
 
+  clicks Click[]
+
   @@index([shortCode])
   @@index([originalUrl])
+}
+
+model Click {
+  id         Int      @id @default(autoincrement())
+  urlId      Int
+
+  ipAddress  String?
+  userAgent  String?
+  referrer   String?
+
+  browser    String?
+  os         String?
+  device     String?
+
+  createdAt  DateTime @default(now())
+
+  url Url @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId])
+  @@index([createdAt])
 }
