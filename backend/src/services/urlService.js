@@ -1,17 +1,26 @@
-import { nanoid } from "nanoid";
 import { prisma } from "../lib/prisma.js";
+import { encodeBase62 } from "../utils/base62.js";
 
 export async function createShortUrl(originalUrl) {
-  const shortCode = nanoid(7);
+  const created = await prisma.url.create({ data: { originalUrl } });
+  const shortCode = encodeBase62(created.id);
 
-  const url = await prisma.url.create({
+  const updated = await prisma.url.update({
+    where: { id: created.id },
+    data: { shortCode },
+  });
+  return updated;
+}
+
+export async function incrementClicks(shortCode) {
+  return prisma.url.update({
+    where: { shortCode },
     data: {
-      originalUrl,
-      shortCode,
+      clickCount: {
+        increment: 1,
+      },
     },
   });
-
-  return url;
 }
 
 export async function getUrl(shortCode) {
