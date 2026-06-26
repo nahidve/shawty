@@ -9,10 +9,11 @@ datasource db {
 
 model Url {
   id          Int      @id @default(autoincrement())
-  originalUrl String
-  shortCode   String   @unique
+  originalUrl String   
+  shortCode   String?   @unique
   clickCount  Int      @default(0)
   createdAt   DateTime @default(now())
 
   @@index([shortCode])
+  @@index([originalUrl])
 }
