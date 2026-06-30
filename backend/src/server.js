@@ -10,7 +10,7 @@ app.listen(PORT, () => {
 
 import { redis } from "./lib/redis.js";
 
-await redis.set("test", "hello");
+await redis.set("test", "redis test");
 
 const value = await redis.get("test");
 
