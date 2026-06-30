@@ -58,10 +58,19 @@ export async function getUrl(shortCode) {
       ],
     },
   });
+  console.log("DB RESULT:", url);
 
   if (url) {
-    await cacheUrl(shortCode, url);
-  }
+  await cacheUrl(shortCode, url);
+
+  const verify =
+    await getCachedUrl(shortCode);
+
+  console.log(
+    "VERIFY CACHE:",
+    verify
+  );
+}
 
   return url;
 }

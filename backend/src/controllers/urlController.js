@@ -1,4 +1,5 @@
 import { UAParser } from "ua-parser-js";
+import { clickQueue } from "../queues/clickQueue.js";
 import {
   createShortUrl,
   getUrl,
@@ -66,11 +67,8 @@ export async function redirectUrl(req, res) {
 
   try {
     const start = performance.now();
-
     const { shortCode } = req.params;
-
     const url = await getUrl(shortCode);
-
     const end = performance.now();
 
     console.log(
@@ -110,25 +108,30 @@ export async function redirectUrl(req, res) {
 
     res.redirect(url.originalUrl);
 
-    Promise.all([
-      incrementClicks(url.id),
+clickQueue
+  .add(
+    "record-click",
+    {
+      urlId: url.id,
+      ipAddress,
+      userAgent,
+      referrer,
+      browser,
+      os,
+      device,
+    },
+    {
+      attempts: 3,
 
-      recordClick({
-        urlId: url.id,
-        ipAddress,
-        userAgent,
-        referrer,
-        browser,
-        os,
-        device,
-      }),
-    ]).catch((err) => {
-      console.error(
-        "Analytics Error:",
-        err
-      );
-    });
-  } catch (error) {
+      backoff: {
+        type: "exponential",
+        delay: 1000,
+      },
+    }
+  )
+  .catch(console.error);
+  } 
+  catch (error) {
     res.status(500).json({
       message: error.message,
     });
